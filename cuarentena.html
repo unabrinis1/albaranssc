@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Albarán Cuarentena</title>
+  <!-- jsPDF para generación de PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* ===== Estilos UI Básicos ===== */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .back-btn {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #1a73e8;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-btn:hover { text-decoration: underline; }
+    .form-section {
+      background: #fff;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    label { display: block; margin: 8px 0 4px; font-weight: bold; }
+    input, select, textarea {
+      width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+    #btn-generate {
+      display: block; margin: 20px auto; padding: 12px 24px;
+      background: #1a73e8; color: #fff; border: none; border-radius: 4px;
+      font-size: 1rem; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: background 0.2s;
+    }
+    #btn-generate:hover { background: #1669c1; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-btn">← Volver al Panel de Albaranes</a>
+  <h2>Albarán Cuarentena</h2>
+
+  <!-- Campos de entrada -->
+  <div class="form-section">
+    <label for="equipo">PC / PORTÁTIL</label>
+    <input type="text" id="equipo" placeholder="Ej.: PORTATIL895">
+
+    <label for="fechaRetirada">FECHA RETIRADA</label>
+    <input type="date" id="fechaRetirada">
+  </div>
+  <div class="form-section">
+    <label for="marcaModelo">Marca / Modelo</label>
+    <input type="text" id="marcaModelo" placeholder="Ej.: DELL / LATITUDE 7290">
+
+    <label for="serie">Nº Serie</label>
+    <input type="text" id="serie" placeholder="Ej.: BDHMXT2">
+  </div>
+  <div class="form-section">
+    <label for="usuario">USUARIO</label>
+    <input type="text" id="usuario" placeholder="Ej.: NGA - Noelia Gonzalez">
+
+    <label for="jira">Nº JIRA</label>
+    <input type="text" id="jira" placeholder="Ej.: STGIO-10426">
+  </div>
+  <div class="form-section">
+    <label for="duracion">CUARENTENA</label>
+    <select id="duracion">
+      <option value="15 DÍAS">15 DÍAS</option>
+      <option value="30 DÍAS">30 DÍAS</option>
+      <option value="OTRO">Otro...</option>
+    </select>
+    <input type="text" id="duracionOtro" placeholder="Si 'Otro', especifique" style="display:none; margin-top:8px;">
+  </div>
+  <div class="form-section">
+    <label for="observaciones">OBSERVACIONES</label>
+    <textarea id="observaciones" placeholder="Comentarios adicionales..."></textarea>
+
+    <label for="postCuarentena">DESPUÉS DE LA CUARENTENA</label>
+    <textarea id="postCuarentena" placeholder="Procedimiento tras cuarentena..."></textarea>
+  </div>
+  <!-- Nuevo campo para Nombre del Técnico -->
+  <div class="form-section">
+    <label for="tecnicoNombre">Nombre del Técnico Responsable</label>
+    <input type="text" id="tecnicoNombre" placeholder="Ej.: Abraham Martinez">
+  </div>
+
+  <button id="btn-generate">Generar PDF</button>
+
+  <script>
+    // Mostrar campo 'Otro' dinámicamente si se elige 'OTRO'
+    document.getElementById('duracion').addEventListener('change', e => {
+      document.getElementById('duracionOtro').style.display = (e.target.value === 'OTRO') ? 'block' : 'none';
+    });
+
+    document.getElementById('btn-generate').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const M = 15, LINE_HEIGHT = 8;
+      let y = 20;
+
+      // ===== Banner superior con título =====
+      doc.setFillColor(230, 230, 230);
+      doc.rect(0, 0, 210, 30, 'F');
+      doc.setTextColor(50);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ALBARÁN CUARENTENA', 105, 18, { align: 'center' });
+
+      // Configuración de texto normal
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0);
+      y = 40;
+
+      // Helper para dibujar campo etiqueta-valor
+      function writeField(label, value) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(label + ':', M, y);
+        doc.setFont('helvetica', 'normal');
+        const lines = Array.isArray(value) ? value : [value];
+        lines.forEach((line, i) => {
+          doc.text(line || '-', M + 50, y + (i * LINE_HEIGHT));
+        });
+        y += LINE_HEIGHT * lines.length + LINE_HEIGHT; // espacio extra tras cada campo
+      }
+
+      // Obtener valores de inputs
+      const getVal = id => document.getElementById(id).value || '-';
+      const dur = getVal('duracion') === 'OTRO' ? getVal('duracionOtro') : getVal('duracion');
+
+      // Escribir datos ordenadamente
+      writeField('PC / PORTÁTIL', getVal('equipo'));
+      writeField('FECHA RETIRADA', getVal('fechaRetirada'));
+      writeField('Marca / Modelo', getVal('marcaModelo'));
+      writeField('Nº Serie', getVal('serie'));
+      writeField('USUARIO', getVal('usuario'));
+      writeField('Nº JIRA', getVal('jira'));
+      writeField('CUARENTENA', dur);
+      writeField('OBSERVACIONES', doc.splitTextToSize(getVal('observaciones'), 140));
+      y += LINE_HEIGHT;
+      // Campo 'DESPUÉS DE LA CUARENTENA' con valor debajo de la etiqueta
+      doc.setFont('helvetica', 'bold');
+      doc.text('DESPUÉS DE LA CUARENTENA:', M, y);
+      doc.setFont('helvetica', 'normal');
+      const postLines = doc.splitTextToSize(getVal('postCuarentena'), 140);
+      y += LINE_HEIGHT;
+      postLines.forEach(line => {
+        doc.text(line, M, y);
+        y += LINE_HEIGHT;
+      });
+      y += LINE_HEIGHT; // espacio tras sección
+
+      // Pie con separador y firma
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.3);
+      doc.line(M, y, 210 - M, y);
+      y += LINE_HEIGHT;
+      // Usar el nombre ingresado para el campo "Generado por"
+      writeField('Generado por', getVal('tecnicoNombre'));
+      writeField('Fecha ', new Date().toLocaleDateString('es-ES'));
+      doc.text('Firma Responsable:', M, y + 10);
+      doc.line(M + 40, y + 12, M + 100, y + 12);
+
+      // Guardar PDF con nombre dinámico
+      doc.save(`albaran_cuarentena_${getVal('equipo')}.pdf`);
+    });
+  </script>
+</body>
+</html>

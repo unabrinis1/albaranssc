@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de Albarán</title>
+  <!-- Importar la librería jsPDF desde CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* ===== Estilos básicos ===== */
+    body {
+      font-family: Arial, sans-serif;   /* Fuente legible */
+      background: #f5f5f5;               /* Fondo suave */
+      padding: 20px;
+    }
+    /* Botón de retroceso */
+    .back-btn {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #1a73e8;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-btn:hover {
+      text-decoration: underline;
+    }
+    .form-section {
+      background: #fff;                 /* Fondo blanco para secciones */
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 8px 0 4px;
+      font-weight: bold;
+    }
+    /* Inputs y select con estilo uniforme */
+    input[type=text], input[type=date], select {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* Checkbox en cuadrícula de 2 columnas */
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+    }
+    .checkbox-group label {
+      font-weight: normal;
+    }
+    /* Botón de generar PDF */
+    #btn-generate {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Botón de retroceso al panel principal -->
+  <a href="index.html" class="back-btn">← Volver al Panel de Albaranes</a>
+
+  <h2>Generador de Albarán</h2>
+
+  <!-- Sección para datos principales -->
+  <div class="form-section">
+    <label for="tipoDocumento">Tipo de documento</label>
+    <select id="tipoDocumento">
+      <option value="DEVOLUCIÓN">Devolución</option>
+      <option value="ENTREGA">Entrega</option>
+    </select>
+
+    <label for="usuario">Nombre del Usuario</label>
+    <input type="text" id="usuario" placeholder="Juan Pérez">
+
+    <label for="modelo">Marca / Modelo</label>
+    <input type="text" id="modelo" placeholder="Lenovo ThinkPad T14">
+
+    <label for="imei">Nº IMEI / Serial</label>
+    <input type="text" id="imei" placeholder="12345ABC">
+  </div>
+
+  <!-- Sección para material -->
+  <div class="form-section">
+    <label>Material</label>
+    <input type="text" id="mat-portatil" placeholder="Portátil / PC">
+    <input type="text" id="mat-auriculares" placeholder="Auriculares">
+    <input type="text" id="mat-movil" placeholder="Móvil">
+    <input type="text" id="mat-sim-movil" placeholder="SIM (Móvil)">
+    <input type="text" id="mat-modem" placeholder="Módem">
+    <input type="text" id="mat-sim-modem" placeholder="SIM (Módem)">
+  </div>
+
+  <!-- Sección para extras con checkboxes -->
+  <div class="form-section">
+    <label>Extras devueltos / entregados</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="ext-cargador"> Cargador</label>
+      <label><input type="checkbox" id="ext-maletin"> Maletín</label>
+      <label><input type="checkbox" id="ext-raton"> Ratón</label>
+      <label><input type="checkbox" id="ext-cable"> Cable de red</label>
+      <label><input type="checkbox" id="ext-candado"> Candado</label>
+      <label><input type="checkbox" id="ext-credenciales"> Credenciales</label>
+      <label><input type="checkbox" id="ext-auriculares"> Auriculares</label>
+      <label><input type="checkbox" id="ext-dock"> Dock</label>
+    </div>
+  </div>
+
+  <!-- Sección para tareas con checkboxes -->
+  <div class="form-section">
+    <label>Tareas realizadas</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="tarea-remedy-entrega"> Evento de Entrega en Remedy</label>
+      <label><input type="checkbox" id="tarea-remedy-modif"> Modificar activo en Remedy</label>
+      <label><input type="checkbox" id="tarea-inventario"> Añadir al inventario semanal</label>
+      <label><input type="checkbox" id="tarea-desAD"> Deshabilitar activo en AD</label>
+      <label><input type="checkbox" id="tarea-sophos"> Baja en Sophos</label>
+      <label><input type="checkbox" id="tarea-nac"> Baja en NAC</label>
+      <label><input type="checkbox" id="tarea-jira"> Jira a Seguridad</label>
+      <label><input type="checkbox" id="tarea-carpeta"> Añadir albarán a carpeta</label>
+    </div>
+  </div>
+
+  <!-- Sección para firma y técnico -->
+  <div class="form-section">
+    <label for="tecnico">Técnico / Firma</label>
+    <input type="text" id="tecnico" placeholder="Abraham Martinez">
+
+    <label for="fecha">Fecha</label>
+    <input type="date" id="fecha">
+  </div>
+
+  <!-- Botón que dispara la generación del PDF -->
+  <button id="btn-generate">Generar PDF</button>
+
+  <script>
+    // Desestructurar jsPDF del objeto global
+    const { jsPDF } = window.jspdf;
+
+    // Asignar evento click al botón de generar
+    document.getElementById('btn-generate').addEventListener('click', () => {
+      // Crear instancia de PDF con medidas A4 en milímetros
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      const M = 20;        // Margen izquierdo
+      let y = 30;          // Posición vertical inicial
+
+      // ===== Encabezado =====
+      doc.setFontSize(14);
+      doc.text('NORMATIVA DE SEGURIDAD PARA USO Y CONSERVACIÓN DE PORTÁTILES', 105, y, { align: 'center' });
+      y += 10;
+      doc.setFontSize(16);
+      const tipo = document.getElementById('tipoDocumento').value;
+      doc.text(`ALBARÁN DE ${tipo} DE MATERIAL`, 105, y, { align: 'center' });
+      y += 15;
+
+      // ===== Datos del usuario =====
+      doc.setFontSize(12);
+      doc.text('Nombre del Usuario:', M, y);
+      doc.text(document.getElementById('usuario').value, M + 50, y);
+      y += 8;
+      doc.text('Marca / Modelo:', M, y);
+      doc.text(document.getElementById('modelo').value, M + 50, y);
+      y += 8;
+      doc.text('Nº IMEI / Serial:', M, y);
+      doc.text(document.getElementById('imei').value, M + 50, y);
+      y += 12;
+
+      // ===== Tabla de Material =====
+      const labelsMat = ['Portátil / PC','Auriculares','Móvil','SIM (Móvil)','Módem','SIM (Módem)'];
+      const idsMat    = ['mat-portatil','mat-auriculares','mat-movil','mat-sim-movil','mat-modem','mat-sim-modem'];
+      const col1W=60, col2W=100, rowH=10;
+      let tableY=y;
+      labelsMat.forEach((label,i)=>{
+        const rowY=tableY+i*rowH;
+        doc.rect(M,rowY,col1W,rowH);
+        doc.rect(M+col1W,rowY,col2W,rowH);
+        doc.text(label,M+2,rowY+7);
+        doc.text(document.getElementById(idsMat[i]).value||'',M+col1W+2,rowY+7);
+      });
+      y=tableY+labelsMat.length*rowH+10;
+
+      // ===== Extras =====
+      const labelsExt=['Cargador','Maletín','Ratón','Cable de red','Candado','Credenciales','Auriculares','Dock'];
+      const idsExt=['ext-cargador','ext-maletin','ext-raton','ext-cable','ext-candado','ext-credenciales','ext-auriculares','ext-dock'];
+      let extY=y;
+      doc.text('Extras:',M,extY);
+      extY+=6;
+      labelsExt.forEach((label,i)=>{
+        const col=i<4?0:1,row=i%4;
+        const xBox=M+col*80,yBox=extY+row*6;
+        doc.rect(xBox,yBox-4,4,4);
+        if(document.getElementById(idsExt[i]).checked)doc.text('X',xBox+1,yBox-0.5);
+        doc.text(label,xBox+6,yBox);
+      });
+      y=extY+4*6+10;
+
+      // ===== Tareas realizadas =====
+      const labelsT=['Evento de Entrega en Remedy','Modificar activo en Remedy','Añadir al inventario semanal','Deshabilitar activo en AD','Baja en Sophos','Baja en NAC','Jira a Seguridad','Añadir albarán a carpeta'];
+      const idsT=['tarea-remedy-entrega','tarea-remedy-modif','tarea-inventario','tarea-desAD','tarea-sophos','tarea-nac','tarea-jira','tarea-carpeta'];
+      let tY=y;
+      doc.text('Tareas realizadas:',M,tY);
+      tY+=6;
+      labelsT.forEach((label,i)=>{
+        const col=i<4?0:1,row=i%4;
+        const xBox=M+col*80,yBox=tY+row*6;
+        doc.rect(xBox,yBox-4,4,4);
+        if(document.getElementById(idsT[i]).checked)doc.text('X',xBox+1,yBox-0.5);
+        doc.text(label,xBox+6,yBox);
+      });
+      y=tY+4*6+15;
+
+      // ===== Firmas =====
+      doc.text('Firma del Usuario:',M,y);
+      doc.text('___________________________',M,y+20);
+      doc.text('Firma del Técnico:',M+100,y);
+      doc.text('___________________________',M+100,y+20);
+      y+=25;
+
+      // ===== Pie de página =====
+      doc.setFontSize(10);
+      doc.text('Hace la entrega:',M,y);
+      doc.text(document.getElementById('tecnico').value,M+30,y);
+      doc.text('Fecha:',M+100,y);
+      doc.text(document.getElementById('fecha').value,M+115,y);
+      doc.text('Página 1',105,287,{align:'center'});
+
+      // Guardar el PDF
+      const nombreArchivo=`albaran_${tipo.toLowerCase()}_${(document.getElementById('usuario').value||'doc')}.pdf`;
+      doc.save(nombreArchivo);
+    });
+  </script>
+</body>
+</html>
